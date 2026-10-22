@@ -1,0 +1,26 @@
+.venv/
+.tmp_build/
+.cache_hf/
+modelos/
+__pycache__/
+datos/privados/
+resultados/
+
+# Credenciales y configuracion local
+.env*
+!.env.example
+.streamlit/secrets.toml
+.streamlit/credentials.toml
+
+# Archivos temporales y caches de Python
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+*.log
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+Desktop.ini

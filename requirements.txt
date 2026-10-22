@@ -1,0 +1,6 @@
+pysentimiento==0.7.3
+transformers>=4.48,<5
+huggingface-hub>=0.27,<1
+requests>=2.31,<3
+Pillow>=11,<13
+streamlit>=1.40,<2
