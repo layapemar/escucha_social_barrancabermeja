@@ -1,292 +1,168 @@
-# Escucha social de una Página de Facebook
+# Proyecto de escucha social para Canal Telepetróleo
 
-## Uso cotidiano sin terminal
 
-La extracción de expresiones normaliza tildes para filtrar conectores y elimina
-fragmentos redundantes con igual frecuencia. En revisión puedes indicar palabras
-generales adicionales que quieras excluir del informe, separadas por comas.
-El informe incorpora una gráfica de cantidades y porcentajes, asuntos detectados
-por diccionario, evolución mensual, preguntas con signos y duplicación de textos.
-Esos indicadores son exploratorios y no identifican personas ni prueban apoyo
-a una autoridad, intención, coordinación o veracidad de denuncias.
+## Presentación
 
-El análisis reutiliza la predicción de comentarios idénticos dentro de una
-ejecución y muestra progreso. La descarga reintenta errores temporales del
-servidor y respuestas 429. El clasificador de sentimientos sigue siendo el mismo;
-no se ha entrenado un modelo nuevo con las correcciones. Para comprobar una
-mejora de precisión se necesita conservar un conjunto de evaluación humano.
+Desarrollé este proyecto para explorar cómo se pueden aplicar el procesamiento de lenguaje natural y el aprendizaje automático al análisis de conversaciones en redes sociales. La fuente de información es el fanpage de Facebook de Canal Telepetróleo, un medio de comunicación de Barrancabermeja.
 
-Actualización editorial: la aplicación genera ahora `informe_editorial.html`,
-con resultados técnicos por publicación, metodología y ejemplos. Descárgalo, ábrelo
-en el navegador y usa **Imprimir o guardar como PDF** para compartirlo. Su
-extensión depende de las publicaciones: no se fuerza todo a una página.
-La comparación modelo/revisión se conserva en el CSV técnico, fuera del informe.
+La aplicación permite estudiar los comentarios publicados por la audiencia frente a temas de interés local, como la gestión pública, las vías, la movilidad, la seguridad, la salud o los servicios públicos. Mi propósito es organizar esa conversación y obtener una lectura descriptiva de su tono, sin presentar los resultados como una encuesta ni como la opinión de toda la ciudad.
 
-En cada página de revisión marca **Aprobar ejemplo: sí** en los comentarios que
-quieras citar, después de comprobar su contexto y quitar cualquier dato personal
-en una versión editorial propia. El informe conserva las citas originales;
-si contienen datos sensibles no las apruebes. Muestra hasta dos ejemplos
-positivos y dos negativos aprobados por publicación. Guarda antes de cambiar
-de página. La columna **Revisar con atención** usa reglas orientativas, no un
-modelo de sarcasmo. Las expresiones recurrentes cuentan comentarios que contienen
-palabras o secuencias repetidas; no agrupan sinónimos ni detectan personas.
+El proyecto comenzó como un ejercicio académico con modelos preentrenados. Después lo amplié hasta convertirlo en una aplicación local hecha con Streamlit. Todo el proceso se ejecuta desde una interfaz y los comentarios se analizan en el computador.
 
-Los nuevos estudios guardan el texto de las publicaciones. En estudios antiguos
-que no lo guardaron, el informe mostrará su identificador y explicará la ausencia.
-El máximo de descarga se puede elegir entre 50 y 5.000 comentarios por publicación;
-no implica que la API vaya a entregar esa cantidad ni una garantía de rendimiento.
+## Qué hace la aplicación
 
-Haz doble clic en `abrir_aplicacion.vbs`. Se abrirá una página local en el
-navegador. Si Windows pregunta si deseas ejecutar el archivo, comprueba que
-está dentro de esta carpeta del proyecto. La primera apertura puede tardar.
+El flujo de trabajo reúne seis pasos:
 
-En la aplicación:
+1. Definir el tema del estudio y las palabras utilizadas para buscar publicaciones.
+2. Conectar la aplicación con la Página mediante un token de acceso de Meta.
+3. Seleccionar las publicaciones relacionadas con la pregunta de análisis.
+4. Descargar los comentarios principales disponibles mediante Meta Graph API.
+5. Clasificar cada comentario como positivo, negativo o neutral.
+6. Revisar los casos necesarios y generar un informe técnico en HTML.
 
-1. Escribe un tema y palabras de búsqueda separadas por comas.
-2. Pega el token de **Página** de Canal Telepetróleo en el campo oculto.
-3. Marca las publicaciones que realmente correspondan a la pregunta.
-4. Pulsa **Descargar comentarios y analizar**.
-5. Revisa la etiqueta de cada comentario. Puedes copiar las predicciones
-   iniciales a las casillas vacías y corregirlas. En **Motivo del cambio**
-   anota, cuando corresponda, `ironía`, `sarcasmo`, `crítica indirecta` u otro
-   motivo que hayas observado. Pulsa **Guardar revisión** para continuar luego.
-6. Cuando no haya pendientes, pulsa **Guardar y generar informe**. Podrás
-   descargar el PNG y el resumen CSV.
+El informe presenta la fuente, el tamaño de la muestra, el periodo observado, la distribución de sentimientos, los asuntos mencionados, algunos comentarios interrogativos, los resultados por publicación, ejemplos de comentarios y una ficha metodológica.
 
-Cada análisis queda en una carpeta independiente dentro de
-`datos/privados/estudios`. En la barra lateral puedes retomarlo. El token solo
-se utiliza en la sesión actual y no se escribe en esos archivos. La primera
-vez debes haber instalado las dependencias con la Parte A de este documento.
+## Modelo utilizado
 
-La búsqueda examina hasta 2.000 publicaciones recientes y descarga hasta 200
-comentarios principales con texto por publicación. Esos límites pertenecen a
-esta primera versión. Si una publicación muestra más comentarios en Facebook,
-el análisis puede abarcar solo los descargados por la API.
+El análisis de sentimiento utiliza **RoBERTuito**, un modelo preentrenado para textos en español de redes sociales. Su arquitectura corresponde a `RobertaForSequenceClassification` y se ejecuta mediante Transformers y PyTorch.
 
-Proyecto académico para clasificar comentarios en español con RoBERTuito.
-No modifica el proyecto del taller de Transformers. No se necesita clonar un
-repositorio ajeno: los programas de este proyecto ya están en esta carpeta.
+En este proyecto realizo inferencia. El modelo recibe textos nuevos y asigna una de tres categorías: positivo, negativo o neutral. No entrené el modelo desde cero y las correcciones humanas no modifican automáticamente sus parámetros.
 
-## Qué hace y qué no hace
+El resultado del modelo es una primera clasificación. El lenguaje de redes sociales contiene ironía, sarcasmo, emojis, expresiones locales y mensajes ambiguos. Por esa razón incorporé una revisión humana antes de generar el informe.
 
-1. `descargar_comentarios.py` consulta la API oficial de Meta y guarda hasta 200
-   comentarios con texto de una publicación de tu propia Página. Requiere un
-   token de acceso de Página y el ID numérico de la Página. No extrae nombres.
-2. `analizar_comentarios.py` lee el CSV y clasifica cada comentario como
-   `POS`, `NEG` o `NEU`. Produce un archivo detallado y un resumen por tema.
-3. Los resultados son una primera lectura del tono del texto. No miden por sí
-   solos apoyo o rechazo a una política, persona o noticia, ni representan a
-   todos los habitantes de Barrancabermeja.
+## Cómo abrir la aplicación
 
-Esta primera versión trabaja con comentarios principales, no respuestas a
-comentarios, y con una publicación por descarga. Un comentario que contenga
-solo una foto o video no entra en el análisis de texto.
+La forma más sencilla es hacer doble clic en:
 
-## Parte A. Preparar VS Code en Windows
+`abrir_aplicacion.vbs`
 
-1. Abre VS Code. Ve a `File > Open Folder` y elige esta carpeta:
-   `C:\Users\LAURA PEREZ\Documents\Codex\2026-10-19\quie\escucha_social_barrancabermeja`.
-   Es un proyecto distinto de la carpeta anterior `Proyecto_Transformers`.
-2. Abre `Terminal > New Terminal`.
-3. Este proyecto ya tiene el entorno `.venv` preparado. No necesitas activar
-   Conda ni instalar todo otra vez. Comprueba que VS Code está situado en esta
-   carpeta y escribe:
+Después de unos segundos se abrirá la dirección local:
 
-   ```powershell
-   .\.venv\Scripts\python.exe --version
-   .\.venv\Scripts\python.exe -m pip show pysentimiento
-   ```
+`http://127.0.0.1:8501`
 
-   Debe aparecer Python 3.13 y la ficha de `pysentimiento`. En VS Code puedes
-   pulsar `Ctrl+Shift+P`, escribir `Python: Select Interpreter` y elegir el
-   Python dentro de `.venv`. Aunque no lo selecciones, los comandos de este
-   documento usan directamente el intérprete correcto.
+La primera carga puede tardar mientras Python prepara las bibliotecas. La aplicación funciona de manera local y debe permanecer abierta durante el análisis.
 
-4. Si llevas esta carpeta a otro computador y `.venv` no existe, entonces sí
-   crea un entorno e instala las dependencias:
+## Cómo realizar un estudio
 
-   ```powershell
-   python -m venv .venv
-   .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-   ```
+### 1. Definir el tema
 
-   La instalación puede tardar varios minutos por PyTorch.
+Escribo un título que identifique con claridad la pregunta del estudio. 
 
-## Parte B. Probar primero con comentarios inventados
+Luego agrego palabras o frases que puedan aparecer en las publicaciones relacionadas. Conviene incluir variantes con y sin tilde y evitar términos demasiado generales.
 
-En la terminal, situada en esta carpeta, ejecuta:
+### 2. Conectar la Página
+
+Pego el token de acceso de Página generado en el Explorador de la API Graph. El token debe corresponder a Canal Telepetróleo. La aplicación lo utiliza durante la sesión.
+
+
+### 3. Seleccionar las publicaciones
+
+La aplicación muestra las publicaciones que coinciden con las palabras indicadas. Reviso el texto, la fecha y la cantidad de comentarios antes de seleccionar.
+
+Puedo elegir varias publicaciones cuando responden a la misma pregunta. La interfaz permite solicitar entre 50 y 5.000 comentarios por publicación. El valor inicial es 200. La cantidad recibida depende de lo que Meta permita consultar.
+
+### 4. Ejecutar el análisis
+
+Al pulsar **Descargar comentarios y analizar**, la aplicación guarda los textos disponibles y ejecuta el modelo local. El tiempo depende de la cantidad de comentarios y de la capacidad del computador.
+
+El proyecto no solicita nombres ni enlaces a perfiles. Cada registro conserva el texto, la fecha y los identificadores técnicos de la publicación y del comentario.
+
+### 5. Realizar la revisión humana
+
+La predicción del modelo aparece como etiqueta inicial y también como etiqueta final provisional. Si estoy de acuerdo, no necesito hacer ningún cambio. Solo modifico la etiqueta cuando mi lectura es diferente.
+
+Puedo registrar el motivo del cambio, por ejemplo ironía, sarcasmo, negación, crítica indirecta o contexto local. También puedo aprobar comentarios para utilizarlos como ejemplos en el informe.
+
+Si no apruebo suficientes ejemplos, el informe selecciona de forma automática hasta tres comentarios positivos y tres negativos por publicación. Estos ejemplos se identifican para que puedan revisarse antes de compartir el documento.
+
+### 6. Generar el informe
+
+Al pulsar **Guardar y generar informe**, la aplicación crea un archivo llamado `informe_editorial.html` dentro de la carpeta del estudio.
+
+El informe se puede consultar en la aplicación, descargar como HTML o guardar como PDF desde la opción de impresión del navegador. También se puede descargar un resumen en CSV para continuar el análisis en Excel.
+
+## Cómo se organizan los archivos
+
+Los componentes principales son:
+
+- `app.py`: contiene la interfaz de Streamlit y coordina el proceso completo.
+- `descargar_comentarios.py`: consulta las publicaciones y comentarios mediante Meta Graph API.
+- `analizar_comentarios.py`: ejecuta el modelo de sentimiento.
+- `resumir_revision.py`: valida las etiquetas finales y calcula los resúmenes.
+- `informe_editorial.py`: genera el informe técnico en HTML.
+- `test_proyecto.py`: reúne las pruebas automáticas del proyecto.
+- `requirements.txt`: contiene las dependencias necesarias.
+- `modelos/robertuito`: almacena el modelo utilizado para la inferencia local.
+- `datos/privados/estudios`: guarda cada estudio, sus comentarios y el informe correspondiente.
+
+La carpeta `.venv` contiene el entorno virtual de Python. No debe editarse manualmente.
+
+## Preparación en otro computador
+
+Si el proyecto se copia a otro equipo y no existe la carpeta `.venv`, se puede preparar desde PowerShell con:
 
 ```powershell
-.\.venv\Scripts\python.exe analizar_comentarios.py datos/ejemplo_comentarios.csv
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-Este proyecto busca primero el modelo verificado en `modelos/robertuito`. Si
-no está allí, intenta descargarlo desde Hugging Face y necesitas internet. El
-archivo de pesos ocupa aproximadamente 435 MB.
-Al terminar, abre `resultados/comentarios_analizados.csv` y
-`resultados/resumen_por_tema.csv`. El ejemplo es inventado y sirve solamente
-para comprobar el funcionamiento. La carpeta `resultados` no se sube a Git.
+Después se abre la aplicación con `abrir_aplicacion.vbs`.
 
-## Parte C. Obtener acceso a tu Página
+La primera descarga del modelo requiere internet. Cuando el modelo está guardado en `modelos/robertuito`, el análisis puede ejecutarse localmente.
 
-1. En Facebook comprueba que tu perfil tiene acceso a la Página: entra en la
-   Página, abre `Configuración > Acceso a la página`. Los nombres de menú pueden
-   cambiar ligeramente. Si no tienes acceso suficiente, quien administre la
-   Página debe concedértelo. Nunca entregues la contraseña a este proyecto.
-2. Abre [Meta for Developers](https://developers.facebook.com/) con tu propia
-   sesión de Facebook. Regístrate como desarrolladora si Meta te lo solicita.
-3. En [Mis apps](https://developers.facebook.com/apps/) crea una app. La
-   interfaz cambia con frecuencia: elige el caso de uso que permita acceder a
-   una Página que administras o administrar Páginas. No marques permisos de
-   publicación, mensajes privados ni anuncios para este ejercicio de lectura.
-4. Abre el [Explorador de la API Graph](https://developers.facebook.com/tools/explorer/).
-   Selecciona tu app. Añade `pages_show_list`, `pages_read_engagement` y
-   `pages_read_user_content` si Meta los presenta. Genera un **token de usuario**
-   y acepta únicamente la Página pertinente.
-5. Para este proyecto ya se confirmó el acceso a **Canal Telepetróleo**.
-   En `Usuario o página`, elige `Canal Telepetróleo` en la sección de tokens
-   de acceso a la página. No elijas `Token del usuario`: para descargar
-   comentarios el programa necesita el **token de Página**.
-6. En el explorador, con el token de Página seleccionado, consulta
-   `me?fields=id,name`. Debe aparecer `Canal Telepetróleo` y el identificador
-   `124142061045473`. Ese es el ID que solicita el programa. Después puedes
-   probar `me/posts?fields=id,message,created_time&limit=2` y, para una
-   publicación que tenga comentarios, `ID_DEL_POST/comments?fields=id,message,created_time&limit=2`.
-   El 21 de octubre de 2026 ambas lecturas se verificaron en el explorador.
-7. Para ejecutar el programa, pulsa el icono de copiar junto al token de
-   Página en el explorador y pégalo **solo** cuando la terminal lo solicite.
-   No lo publiques, no lo pegues en el chat, no lo incluyas en capturas ni lo
-   guardes en archivos del proyecto. El token puede caducar o revocarse.
+## Acceso a Meta
 
-Nota: en este caso `me/accounts` respondió con `data: []` usando el token de
-usuario, aunque la Página estaba marcada en la autorización. La selección del
-token de Página desde el menú del explorador sí funcionó. No hace falta repetir
-`me/accounts` si el menú ya muestra `Canal Telepetróleo`.
+La aplicación necesita un token de acceso de Página con permisos de lectura. Para este proyecto se utilizaron los permisos `pages_show_list`, `pages_read_engagement` y `pages_read_user_content`.
 
-Para diagnosticar el portafolio empresarial se solicitó, con autorización de
-la propietaria, `business_management`. Es un permiso más amplio que los tres
-de lectura iniciales. Este programa **no lo usa para modificar activos** y
-solo realiza solicitudes `GET`; cuando termine el piloto, conviene revisar o
-revocar la integración desde la configuración de Facebook y generar un token
-nuevo para cualquier uso posterior.
+El token se obtiene en el Explorador de la API Graph. Allí selecciono la aplicación registrada y luego Canal Telepetróleo en la opción de usuario o Página. La consulta `me?fields=id,name` permite comprobar que el token corresponde a la Página correcta.
 
-Meta puede modificar nombres de botones, requisitos de revisión y permisos.
-Las instrucciones de esta parte son una ruta de orientación, no garantía de
-aprobación. Para una app usada solamente por sus administradores en desarrollo,
-las condiciones pueden ser distintas a las de una app ofrecida al público.
+No guardo el token en el código, en capturas, en documentos ni en repositorios. Si se expone o deja de funcionar, debe revocarse y generarse uno nuevo.
 
-## Parte D. Descargar comentarios de una noticia
+Meta puede cambiar los permisos, la versión de la API y los nombres de las opciones de su plataforma. Por eso esta parte del proceso puede requerir ajustes posteriores.
 
-En la terminal, con el entorno activo, escribe:
+## Criterios para interpretar los resultados
+
+Este es un análisis descriptivo de una muestra seleccionada. Los porcentajes se calculan sobre los comentarios descargados y no representan a todos los seguidores de la Página ni a toda la población de Barrancabermeja.
+
+Un comentario corresponde a una observación. El proyecto no identifica personas únicas. Una misma persona podría escribir más de un comentario.
+
+La categoría de sentimiento describe el tono general del texto. Un mensaje negativo no significa necesariamente rechazo al tema de la publicación. Puede expresar inconformidad con otra persona, recordar un hecho o responder con ironía.
+
+Los asuntos del informe se identifican mediante un diccionario de términos. Un comentario puede mencionar varios asuntos. Esta parte es descriptiva y se encuentra separada del modelo de sentimiento.
+
+La confianza del modelo expresa la puntuación más alta entre las tres categorías. No equivale a certeza estadística ni prueba que la interpretación sea correcta.
+
+Para medir formalmente el desempeño del modelo en el lenguaje local sería necesario construir una muestra etiquetada por personas, separar un conjunto de evaluación y calcular métricas como exactitud, precisión, exhaustividad y F1.
+
+## Privacidad y manejo de la información
+
+Los comentarios pueden incluir nombres, teléfonos u otros datos escritos voluntariamente por sus autores. Antes de compartir un ejemplo, reviso su contenido y evito divulgar información sensible.
+
+Los archivos de trabajo permanecen en `datos/privados`. Esta carpeta está excluida de Git para reducir el riesgo de publicar comentarios o identificadores por error.
+
+La herramienta utiliza solicitudes de lectura. No publica contenido, no envía mensajes, no administra anuncios y no modifica la Página.
+
+## Comprobación del proyecto
+
+Las pruebas se ejecutan con:
 
 ```powershell
-.\.venv\Scripts\python.exe descargar_comentarios.py
+.\.venv\Scripts\python.exe -m unittest -q
 ```
 
-El programa te pedirá, en este orden:
+Estas pruebas revisan las funciones principales sin conectarse a Facebook ni descargar nuevamente el modelo.
 
-1. Token de Página. Al pegarlo no aparecerán caracteres; eso es normal.
-2. ID numérico de la Página. Para Canal Telepetróleo, pulsa `Enter` y el
-   programa usará el ID ya verificado.
-3. Tema breve de la noticia, por ejemplo `movilidad`.
-4. Palabras para buscar. Para el tema de vías puedes pulsar `Enter` y usar la
-   lista sugerida. El programa revisa hasta 2.000 publicaciones recientes y
-   muestra las que contienen expresiones concretas como recuperación vial,
-   pavimentación, rehabilitación, malla vial u obras viales.
-5. Uno o varios números de las publicaciones encontradas. El programa muestra
-   la cantidad de comentarios y permite escribir, por ejemplo, `2,5,8` para
-   reunir varias noticias del mismo tema en un solo archivo. Lee cada fragmento
-   y elige solamente publicaciones que respondan a la misma pregunta de estudio.
+## Alcance académico
 
-Al terminar verás un archivo CSV dentro de `datos/privados`. Solo se solicita
-texto, fecha e identificadores de publicación y comentario. Aunque no se pidan
-nombres, los textos pueden contener datos personales; no compartas el CSV sin
-revisión y elimina información sensible antes de citar ejemplos.
+Este proyecto forma parte de mi proceso de aprendizaje en la Maestría en Ciencia de Datos. Me permitió integrar acceso a datos, procesamiento de texto, uso de un modelo preentrenado, revisión humana, visualización de resultados y desarrollo de una aplicación local.
 
-## Parte E. Analizar comentarios reales
+La versión actual funciona como un piloto. Mi siguiente reto es evaluar el modelo con una muestra local etiquetada, estudiar con mayor detalle la ironía y el sarcasmo y mejorar la identificación de temas recurrentes.
 
-Sustituye el nombre de archivo por el que haya creado la parte D:
+## Referencias
 
-```powershell
-.\.venv\Scripts\python.exe analizar_comentarios.py "datos/privados/comentarios_ID-DEL-POST.csv"
-```
+- Modelo RoBERTuito: https://huggingface.co/pysentimiento/robertuito-sentiment-analysis
+- Librería pysentimiento: https://github.com/pysentimiento/pysentimiento
+- Explorador de Meta Graph API: https://developers.facebook.com/tools/explorer/
 
-Abre el resultado en Excel o VS Code. En `revision_humana` escribe tu criterio
-para una muestra de comentarios, especialmente cuando haya ironía, ambigüedad,
-negación o mezcla de sentimientos. No publiques una cifra sin indicar el
-número de comentarios analizados, la publicación, el periodo y este proceso
-de revisión.
-
-Cuando termines de revisar **todas** las filas, guarda y cierra el archivo en
-Excel. Después vuelve a la terminal y ejecuta:
-
-```powershell
-.\.venv\Scripts\python.exe resumir_revision.py
-```
-
-El programa comprueba que no haya revisiones vacías ni etiquetas diferentes de
-`positivo`, `negativo` o `neutral`. Luego crea dos archivos nuevos sin borrar
-el análisis original:
-
-- `resultados/resumen_revision_humana.csv`: resultado final corregido,
-  porcentajes y nivel de coincidencia entre el modelo y la revisión humana.
-- `resultados/comparacion_modelo_revision.csv`: cantidad de comentarios que
-  pasaron de cada etiqueta automática a cada etiqueta humana. Esta tabla ayuda
-  a reconocer fallos repetidos, por ejemplo ironías clasificadas como neutrales.
-
-La columna `revision_humana` es la decisión final para este piloto. Las
-probabilidades y la etiqueta del modelo se conservan como evidencia de lo que
-predijo originalmente, no se reemplazan.
-
-## Parte F. Generar el informe técnico
-
-En la aplicación local, completa las correcciones necesarias y pulsa
-`Guardar y generar informe`. El sistema crea `informe_editorial.html` dentro
-de la carpeta del estudio. Este es el único informe final del proyecto.
-
-El documento presenta la fuente, la muestra, el periodo, la distribución de
-sentimientos, los asuntos detectados, los resultados por publicación, ejemplos
-de comentarios y la ficha metodológica. Puede descargarse como HTML o imprimirse
-como PDF desde el navegador.
-
-Si Windows muestra el error 1455 indicando que el archivo de paginación es
-demasiado pequeño, el CSV no se ha perdido. Guarda tu trabajo, cierra el
-navegador y otras aplicaciones que consuman memoria o reinicia el equipo. Abre
-solo VS Code con este proyecto y repite el comando de análisis; no es necesario
-volver a descargar los comentarios ni generar otro token.
-
-### Si Meta todavía no concede el acceso a la API
-
-Puedes hacer un piloto pequeño de forma manual, sin extensiones de extracción:
-abre `datos/ejemplo_comentarios.csv` en Excel, guarda una copia como
-`datos/privados/muestra_manual.csv` con codificación UTF-8 y reemplaza las
-frases inventadas por una muestra de comentarios visibles de una noticia de
-tu Página. Conserva las columnas `tema` y `comentario`. En `fecha`, `post_id`
-y `comment_id` puedes dejar las celdas vacías. No copies nombres ni enlaces a
-perfiles. Luego ejecuta:
-
-```powershell
-.\.venv\Scripts\python.exe analizar_comentarios.py datos/privados/muestra_manual.csv
-```
-
-Esta vía permite validar el análisis, pero no sustituye una extracción
-sistemática mediante la API si el proyecto crece.
-
-## Seguridad y límites
-
-- El token se introduce en la terminal y solo permanece en la memoria del
-  proceso. Si se filtra, revócalo desde Meta.
-- `datos/privados` y `resultados` están excluidos de Git. No publiques
-  comentarios identificables ni claves en GitHub.
-- Usa únicamente contenido al que tu cuenta y la API oficial tengan acceso.
-  No uses extensiones de extracción masiva o técnicas para evadir restricciones.
-- El modelo y `pysentimiento` tienen condiciones de uso no comercial y de
-  investigación; revisa la licencia antes de ampliar el uso fuera del piloto.
-- Las puntuaciones del modelo no son una garantía de verdad ni una encuesta.
-
-## Fuentes
-
-- Modelo: https://huggingface.co/pysentimiento/robertuito-sentiment-analysis
-- Código y licencia: https://github.com/pysentimiento/pysentimiento
-- Explorador de Meta: https://developers.facebook.com/tools/explorer/
-- Acceso a la Página: https://www.facebook.com/help/510247025775149/
+Laura Pérez  
+Analista y científica de datos  
