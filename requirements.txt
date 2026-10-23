@@ -4,3 +4,5 @@ huggingface-hub>=0.27,<1
 requests>=2.31,<3
 Pillow>=11,<13
 streamlit>=1.40,<2
+sentence-transformers>=3,<4
+scikit-learn>=1.4,<2

@@ -263,5 +263,14 @@ def crear_html(filas, salida, publicaciones=None, excluir=()):
     @media print{main{padding:0;box-shadow:none}.cabecera,.muestra,.firma{break-inside:avoid}body{font-size:10px}.metodo tr{break-inside:avoid}}
     </style>'''
     documento = documento.replace('</style><main>', '</style>'+estilo+ejecutivo+tecnico+'<main>')
+    # El complemento se integra únicamente si corresponde al archivo vigente.
+    from observatorio import huella, seccion_html
+    import json
+    complemento = Path(salida).parent / 'observatorio.json'
+    origen = Path(salida).parent / 'comentarios_analizados.csv'
+    if complemento.exists() and origen.exists():
+        datos_extra = json.loads(complemento.read_text(encoding='utf-8'))
+        if datos_extra.get('huella') == huella(origen) and len(datos_extra.get('etapas', [])) == 4:
+            documento = documento.replace('</main>', seccion_html(datos_extra) + '</main>')
     Path(salida).write_text(documento, encoding='utf-8')
     return Path(salida)

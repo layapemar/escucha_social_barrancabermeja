@@ -22,7 +22,21 @@ El flujo de trabajo reúne seis pasos:
 
 El informe presenta la fuente, el tamaño de la muestra, el periodo observado, la distribución de sentimientos, los asuntos mencionados, algunos comentarios interrogativos, los resultados por publicación, ejemplos de comentarios y una ficha metodológica.
 
-## Modelo utilizado
+## Observatorio de conversación
+
+Desde la barra lateral puedo abrir Observatorio y elegir un estudio guardado. Escribo una persona, institución o acción concreta y ejecuto el análisis complementario. Las etapas terminadas se guardan, por lo que puedo reanudar el proceso.
+
+Esta ampliación utiliza RoBERTuito para emociones e ironía, MiniLM multilingüe con inferencia de lenguaje natural para postura y peticiones, y representaciones multilingües de oraciones para agrupar comentarios por significado. Los grupos se obtienen con agrupación jerárquica, distancia coseno y umbral 0.35. Sus nombres se proponen con TF-IDF y requieren revisión. No se ha implementado BERTopic.
+
+La postura se estima frente al objetivo escrito. No extrae automáticamente todos los destinatarios de una opinión. Si la puntuación es menor a 0.60 o la diferencia con la segunda opción es menor a 0.15, queda indeterminada. Estos umbrales son iniciales y aún no están calibrados con datos locales.
+
+Puedo corregir las etiquetas y marcar cuáles comprobé. La evaluación muestra el acuerdo y los cruces entre modelo y persona exclusivamente en los casos marcados. La muestra reproducible ayuda a revisar casos fuera de las alertas, pero no reemplaza una evaluación independiente. Las correcciones no entrenan automáticamente los modelos.
+
+El informe incorpora las nuevas dimensiones cuando las cuatro etapas están completas y el archivo original sigue vigente. Conserva el número de comentarios, porcentajes y evolución mensual de la muestra. Los meses pueden tener distinta cobertura y no prueban cambios en toda la población. Los resultados y las revisiones permanecen en la carpeta privada del estudio, en observatorio.json.
+
+Repositorios y modelos: https://github.com/pysentimiento/pysentimiento, https://huggingface.co/MoritzLaurer/multilingual-MiniLMv2-L6-mnli-xnli, https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2. Pysentimiento declara uso no comercial y de investigación; revisar las licencias antes de ampliar el uso.
+
+## Modelo de sentimiento
 
 El análisis de sentimiento utiliza **RoBERTuito**, un modelo preentrenado para textos en español de redes sociales. Su arquitectura corresponde a `RobertaForSequenceClassification` y se ejecuta mediante Transformers y PyTorch.
 
