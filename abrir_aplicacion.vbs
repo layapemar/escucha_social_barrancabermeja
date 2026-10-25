@@ -1,10 +1,10 @@
 Set shell = CreateObject("WScript.Shell")
 Set fs = CreateObject("Scripting.FileSystemObject")
 carpeta = fs.GetParentFolderName(WScript.ScriptFullName)
-python = carpeta & "\.venv\Scripts\python.exe"
+python = carpeta & "\.venv312\Scripts\python.exe"
 aplicacion = carpeta & "\app.py"
 If Not fs.FileExists(python) Then
-  MsgBox "No se encuentra el entorno .venv. Consulta el README del proyecto.", 16, "Escucha Social"
+  MsgBox "No se encuentra el entorno .venv312. Consulta el README del proyecto.", 16, "Escucha Social"
   WScript.Quit
 End If
 shell.CurrentDirectory = carpeta

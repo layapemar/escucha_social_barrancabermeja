@@ -1,4 +1,4 @@
-"""Descarga comentarios de UNA publicación propia usando la API oficial de Meta."""
+"""Consulta publicaciones y comentarios de Páginas autorizadas mediante Meta."""
 
 import csv
 import getpass
@@ -179,15 +179,15 @@ def main() -> None:
     if not token:
         raise RuntimeError("No se introdujo ningún token.")
     pagina_id = input(
-        f"ID de Canal Telepetróleo [{PAGINA_ID_PREDETERMINADA}]; pulsa Enter para usarlo: "
-    ).strip() or PAGINA_ID_PREDETERMINADA
+        "ID de la Página autorizada: "
+    ).strip()
     if not pagina_id.isdigit():
         raise RuntimeError("El ID de Página debe contener solo números.")
     identidad = consultar("me", token, {"fields": "id,name"})
     if identidad.get("id") != pagina_id:
         raise RuntimeError(
             "El token no corresponde a esta Página. En el Explorador de Meta "
-            "elige 'Canal Telepetróleo' en 'Usuario o página' y copia su token de Página."
+            "elige la Página correspondiente en 'Usuario o página' y copia su token de Página."
         )
     print(f"Conexión comprobada con la Página: {identidad.get('name', pagina_id)}")
     tema = input("Tema para esta noticia (por ejemplo, movilidad): ").strip() or "Sin tema"

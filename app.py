@@ -13,6 +13,7 @@ import analizar_comentarios as analisis
 import descargar_comentarios as facebook
 import resumir_revision as revision
 import informe_editorial as editorial
+import fuentes
 import streamlit.components.v1 as componentes
 
 
@@ -46,9 +47,11 @@ def estudios_anteriores() -> list[Path]:
     )
 
 
-st.set_page_config(page_title="Escucha Social Telepetróleo", page_icon="📰", layout="wide")
-st.title("Escucha Social · Canal Telepetróleo")
+st.set_page_config(page_title="Observatorio de Escucha Social", layout="wide")
+st.title("Observatorio de Escucha Social")
 st.caption("De las publicaciones al informe, con una revisión editorial antes de publicar.")
+st.page_link('pages/2_Observatorio.py', label='Abrir análisis avanzado: emociones, postura, temas y fuentes')
+st.page_link('pages/3_Personas_y_enfoques.py', label='Analizar personas y enfoques dentro de un estudio')
 
 for nombre, valor in {"fase": "inicio", "publicaciones": [], "estudio": None}.items():
     if nombre not in st.session_state:
@@ -91,10 +94,11 @@ with st.sidebar:
         st.session_state.publicaciones = []
         st.session_state.estudio = None
         st.session_state.pop("token", None)
+        st.session_state.pop("conexiones", None)
         st.rerun()
 
 if st.session_state.fase == "inicio":
-    st.subheader("1. Define el tema y conecta la Página")
+    st.subheader("1. Define el tema y conecta tus Páginas")
     tema = st.text_input(
         "Tema del estudio",
         placeholder="Por ejemplo: percepción ciudadana sobre la atención en salud",
@@ -106,38 +110,37 @@ if st.session_state.fase == "inicio":
         placeholder="hospital, urgencias, centro de salud",
         help="Sepáralas con comas. El programa busca estas expresiones en el texto de las publicaciones.",
     )
-    token = st.text_input("Token de acceso de Página de Meta", type="password",
-                          help="Se usa durante esta sesión y no se guarda en archivos.")
+    cantidad = st.number_input('Número de Páginas a consultar', min_value=1, max_value=20, value=1)
+    st.caption('Pega un token de Página por fuente. La aplicación verificará su nombre. Necesitas acceso autorizado de lectura a cada Página. Los tokens se mantienen solo durante la sesión.')
+    tokens = [st.text_input(f'Token de Página {i+1}', type='password', key=f'credencial_pagina_{i}') for i in range(int(cantidad))]
     if st.button("Buscar publicaciones", type="primary"):
         palabras = [p.strip() for p in terminos.split(",") if p.strip()]
-        if not tema.strip() or not palabras or not token.strip():
-            st.error("Completa el tema, al menos una palabra de búsqueda y el token.")
+        if not tema.strip() or not palabras or any(not t.strip() for t in tokens):
+            st.error("Completa el tema, al menos una palabra de búsqueda y los tokens de las Páginas.")
         else:
             try:
                 with st.spinner("Verificando la Página y buscando publicaciones. Puede tardar unos minutos..."):
-                    identidad = facebook.consultar("me", token.strip(), {"fields": "id,name"})
-                    if str(identidad.get("id")) != facebook.PAGINA_ID_PREDETERMINADA:
-                        raise ValueError("El token debe corresponder a Canal Telepetróleo.")
-                    posts = facebook.buscar_publicaciones(
-                        token.strip(), facebook.PAGINA_ID_PREDETERMINADA, palabras
-                    )
-                st.session_state.token = token.strip()
+                    conexiones, posts, cobertura = fuentes.buscar(tokens, palabras)
+                st.session_state.conexiones = conexiones
+                st.session_state.cobertura_busqueda = cobertura
                 st.session_state.tema = tema.strip()
                 st.session_state.publicaciones = posts
                 st.session_state.fase = "seleccion"
                 st.rerun()
             except Exception as error:
-                st.error(str(error).replace(token.strip(), "[token oculto]"))
+                st.error(fuentes.ocultar_error(error, tokens))
 
 if st.session_state.fase == "seleccion":
     st.subheader("2. Elige las publicaciones")
     posts = st.session_state.publicaciones
     st.write(f"Tema: **{st.session_state.tema}** · Coincidencias: **{len(posts)}**")
+    if st.session_state.get('cobertura_busqueda'):
+        st.dataframe(st.session_state.cobertura_busqueda, hide_index=True)
     if not posts:
         st.info("No hubo coincidencias. Cambia las palabras de búsqueda e inténtalo de nuevo.")
     else:
         opciones = {
-            post["id"]: f"{post.get('created_time', '')[:10]} · "
+            post["id"]: f"{post.get('page_name', 'Página')} · {post.get('created_time', '')[:10]} · "
             f"{post.get('comments', {}).get('summary', {}).get('total_count', '?')} comentarios · "
             f"{' '.join(post.get('message', '[sin texto]').split())[:200]}"
             for post in posts
@@ -149,14 +152,14 @@ if st.session_state.fase == "seleccion":
         if st.button("Descargar comentarios y analizar", type="primary", disabled=not ids):
             try:
                 with st.spinner("Descargando y clasificando. El modelo puede tardar al cargar..."):
-                    filas = []
-                    for post_id in ids:
-                        filas.extend(facebook.descargar(st.session_state.token, post_id, int(limite)))
+                    elegidas = [p for p in posts if p['id'] in ids]
+                    filas, cobertura = fuentes.descargar_seleccion(elegidas, st.session_state.get('conexiones', {}), int(limite), st.session_state.tema)
                     if not filas:
                         raise ValueError("Las publicaciones elegidas no devolvieron comentarios con texto.")
                     for fila in filas:
                         fila["tema"] = st.session_state.tema
                     destino = nuevo_estudio(st.session_state.tema)
+                    (destino / 'cobertura.json').write_text(json.dumps({'busqueda': st.session_state.get('cobertura_busqueda', []), 'descarga': cobertura}, ensure_ascii=False, indent=2), encoding='utf-8')
                     (destino / 'publicaciones.json').write_text(json.dumps([p for p in posts if p['id'] in ids], ensure_ascii=False), encoding='utf-8')
                     escribir_csv(destino / "comentarios_originales.csv", filas)
                     avance = st.progress(0, text='Cargando el modelo...')
@@ -165,9 +168,10 @@ if st.session_state.fase == "seleccion":
                 st.session_state.estudio = destino
                 st.session_state.fase = "revision"
                 st.session_state.pop("token", None)
+                st.session_state.pop("conexiones", None)
                 st.rerun()
             except Exception as error:
-                st.error(str(error).replace(st.session_state.get("token", ""), "[token oculto]"))
+                st.error(fuentes.ocultar_error(error, list(st.session_state.get('conexiones', {}).values())))
 
 if st.session_state.fase == "revision":
     st.subheader("3. Revisa las etiquetas")
@@ -232,6 +236,9 @@ if st.session_state.fase == "revision":
 if st.session_state.fase == "informe":
     st.subheader("4. Informe final")
     destino = Path(st.session_state.estudio)
+    if st.button('Ampliar este estudio con emociones, postura y temas'):
+        st.session_state['estudio_observatorio'] = str(destino / 'comentarios_analizados.csv')
+        st.switch_page('pages/2_Observatorio.py')
     documento = destino / 'informe_editorial.html'
     # Regenera desde las etiquetas guardadas con el diseño vigente, incluso
     # cuando el servidor se inició antes de actualizar el módulo editorial.

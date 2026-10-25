@@ -119,6 +119,19 @@ def crear_html(filas, salida, publicaciones=None, excluir=()):
         raise ValueError('Completa las etiquetas finales antes de generar el informe.')
     e = lambda valor: html.escape(str(valor), quote=True)
     total = len(filas)
+    from fuentes import resumen as resumen_fuentes, identificar
+    fuentes_resumen = resumen_fuentes(filas)
+    nombres_fuentes = ', '.join(f['fuente'] for f in fuentes_resumen)
+    tabla_fuentes = ''.join('<tr>' + ''.join(f'<td>{e(f[k])}</td>' for k in ('fuente','comentarios','publicaciones','peso_muestra_pct','negativo_pct','positivo_pct','neutral_pct')) + '</tr>' for f in fuentes_resumen)
+    fuentes_html = '<h2>Fuentes y composición de la muestra</h2><table><tr><th>Página</th><th>Comentarios</th><th>Publicaciones</th><th>% muestra</th><th>Negativo %</th><th>Positivo %</th><th>Neutral %</th></tr>'+tabla_fuentes+'</table><p class="muted">Cada porcentaje de sentimiento usa los comentarios de su propia Página. El resultado conjunto pondera por número de comentarios: una Página con mayor participación tiene más peso. Las fuentes no constituyen muestras representativas ni permiten identificar personas únicas.</p>'
+    import json
+    cobertura_path = Path(salida).parent / 'cobertura.json'
+    if cobertura_path.exists():
+        cobertura = json.loads(cobertura_path.read_text(encoding='utf-8'))
+        descargas = cobertura.get('descarga', [])
+        limites = sum(bool(p.get('limite_alcanzado')) for p in descargas)
+        vacias = sum(p.get('comentarios_descargados') == 0 for p in descargas)
+        fuentes_html += f'<p class="muted">Cobertura de extracción: {len(descargas)} publicaciones consultadas; {vacias} sin comentarios con texto recibidos; {limites} alcanzaron el límite solicitado. Se incluyen solo comentarios principales accesibles. El conteo mostrado por Meta puede incluir contenido no recibido.</p>'
     cuenta = Counter(f['revision_humana'] for f in filas)
     grupos = defaultdict(list)
     for f in filas:
@@ -175,13 +188,13 @@ def crear_html(filas, salida, publicaciones=None, excluir=()):
         titulo = p.get('message') or f'Publicación {post} · texto no guardado en este estudio anterior'
         enlace = f'https://www.facebook.com/{post}' if re.fullmatch(r'[0-9_]+',post) else ''
         porcentajes = ' · '.join(f'{100*c[k]/len(comentarios):.1f}% {k}' for k in ('negativo','positivo','neutral'))
-        bloques.append(f'<section class="publicacion"><h3>{indice}. {e(titulo[:150])}{"…" if len(titulo)>150 else ""}</h3><p class="muted">{e(p.get("created_time","")[:10])} · {len(comentarios)} comentarios</p><p class="distribucion">{porcentajes}</p><div class="citas">{"".join(citas)}</div>'+ (f'<a href="{e(enlace)}">Consultar publicación ↗</a>' if enlace else '')+'</section>')
+        bloques.append(f'<section class="publicacion"><h3>{indice}. {e(titulo[:150])}{"…" if len(titulo)>150 else ""}</h3><p class="muted">{e(identificar(comentarios[0])[1])} · {e(p.get("created_time","")[:10])} · {len(comentarios)} comentarios</p><p class="distribucion">{porcentajes}</p><div class="citas">{"".join(citas)}</div>'+ (f'<a href="{e(enlace)}">Consultar publicación ↗</a>' if enlace else '')+'</section>')
     documento = f'''<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Escucha social</title><style>
     body{{font-family:Arial,sans-serif;background:#f2f5f8;color:#17212b;margin:0;line-height:1.5}}main{{max-width:1050px;margin:35px auto;padding:35px;background:white}}h1{{font-size:36px;line-height:1.15}}h2{{margin-top:38px;color:#176b87}}.datos,.citas{{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}}.citas{{grid-template-columns:1fr 1fr}}.dato{{padding:18px;background:#edf3f6}}strong{{display:block;font-size:38px}}.muted{{color:#526273}}li{{display:flex;justify-content:space-between;gap:20px;padding:8px;border-bottom:1px solid #ddd}}.publicacion{{break-inside:avoid;border-top:2px solid #dce5ea;margin-top:25px;padding-top:15px}}blockquote{{margin:0 0 15px;padding:14px;background:#f2f5f8;white-space:pre-wrap;overflow-wrap:anywhere}}button{{padding:10px}}table{{border-collapse:collapse;width:100%;font-size:14px}}th,td{{text-align:left;border-bottom:1px solid #ddd;padding:10px}}.barra{{display:grid;grid-template-columns:90px 1fr 110px;align-items:center;gap:12px;margin:15px 0}}figure{{margin:15px 0}}@media(max-width:650px){{main{{margin:0;padding:20px}}.datos,.citas{{grid-template-columns:1fr}}.barra{{grid-template-columns:75px 1fr 95px;font-size:13px}}table{{font-size:12px}}}}@media print{{body{{background:white}}main{{margin:0;padding:0}}button{{display:none}}}}</style><main>
-    <header class="cabecera"><p class="serie">INFORME TÉCNICO · ANÁLISIS DE SENTIMIENTOS</p><h1>{e(filas[0]['tema'])}</h1><p class="subtitulo">Procesamiento de lenguaje natural aplicado a escucha social<br>Inferencia con RoBERTuito · Clasificación supervisada basada en Transformers</p><p class="fuente"><b>Fuente de información:</b> fanpage de Facebook Canal Telepetróleo · Extracción mediante Meta Graph API</p></header>
+    <header class="cabecera"><p class="serie">INFORME TÉCNICO · ANÁLISIS DE SENTIMIENTOS</p><h1>{e(filas[0]['tema'])}</h1><p class="subtitulo">Procesamiento de lenguaje natural aplicado a escucha social<br>Inferencia con RoBERTuito · Clasificación supervisada basada en Transformers</p><p class="fuente"><b>Fuentes de información:</b> {e(nombres_fuentes)} · Páginas de Facebook · Extracción mediante Meta Graph API</p></header>
     <section class="muestra"><div><span>UNIDAD DE ANÁLISIS</span><strong>{total}</strong><small>comentarios con texto</small></div><div><span>COBERTURA OBSERVADA</span><strong>{len(grupos)}</strong><small>publicaciones con comentarios analizados</small></div><div><span>PERIODO DE LOS COMENTARIOS</span><b>{e(periodo)}</b><small>Muestra no probabilística de publicaciones seleccionadas</small></div></section>
     <section class="resultado"><div class="eyebrow">RESULTADO CENTRAL · TONO DE LA CONVERSACIÓN</div><h2>Distribución de la percepción en la muestra</h2><div class="datos">{tarjetas}</div>{grafica(cuenta,total)}<p class="muted">Base: {total} comentarios · Etiquetas finales con correcciones humanas. El tono no equivale automáticamente a aprobación de una persona.</p></section>
-    <aside class="lectura"><h2>Concentración de la muestra</h2><p>{lectura}</p></aside>
+    <aside class="lectura"><h2>Concentración de la muestra</h2><p>{lectura}</p></aside>{fuentes_html}
     <h2>Asuntos presentes en la conversación</h2>{temas_html}<p class="muted">Clasificación descriptiva por un diccionario de términos, no por comprensión semántica. Un comentario puede mencionar varios asuntos: los porcentajes no suman necesariamente 100%. El sentimiento corresponde al comentario completo, no a cada asunto por separado.</p>
     <h2>Comentarios interrogativos</h2><p><b>{preguntas} de {total} comentarios · {100*preguntas/total:.1f}% de la muestra.</b> Identificación por signos de interrogación. Se presentan hasta cuatro ejemplos distintos alternando publicaciones; pueden incluir preguntas retóricas.</p><ol class="preguntas">{preguntas_html}</ol><div class="nota"><b>Repetición textual:</b> {duplicados} registros adicionales con texto idéntico normalizado, equivalentes al {100*duplicados/total:.1f}% del total. Se conservan en las cifras. Esta coincidencia no permite inferir coordinación.</div>
     <h2>Distribución temporal de esta muestra</h2><table><tr><th>Mes</th><th>Total</th><th>Negativos</th><th>Positivos</th><th>Neutrales</th></tr>{evolucion}</table><p class="muted">Refleja las fechas de los comentarios seleccionados. Cambios de volumen o sentimiento pueden deberse a la selección de publicaciones.</p>
@@ -271,6 +284,17 @@ def crear_html(filas, salida, publicaciones=None, excluir=()):
     if complemento.exists() and origen.exists():
         datos_extra = json.loads(complemento.read_text(encoding='utf-8'))
         if datos_extra.get('huella') == huella(origen) and len(datos_extra.get('etapas', [])) == 4:
-            documento = documento.replace('</main>', seccion_html(datos_extra) + '</main>')
+            documento = documento.replace('<aside class="lectura">', seccion_html(datos_extra) + '<aside class="lectura">', 1)
+            # El panel integrado ya explica asuntos semánticos y evolución.
+            documento = re.sub(r'<h2>Asuntos presentes en la conversación</h2>.*?(?=<h2>Comentarios interrogativos</h2>)', '', documento, flags=re.S)
+            documento = re.sub(r'<h2>Distribución temporal de esta muestra</h2>.*?(?=<h2>Qué se dijo en cada publicación</h2>)', '', documento, flags=re.S)
+            documento = documento.replace('INFORME TÉCNICO · ANÁLISIS DE SENTIMIENTOS', 'INFORME TÉCNICO · OBSERVATORIO DE ESCUCHA SOCIAL')
+            documento = documento.replace('Inferencia con RoBERTuito · Clasificación supervisada basada en Transformers', 'Sentimiento, emoción, ironía, postura y asuntos · Inferencia local con modelos Transformers')
+            documento = documento.replace('Asuntos identificados mediante diccionario de términos; preguntas mediante signos de interrogación.', 'Emociones e ironía con RoBERTuito; postura y peticiones mediante inferencia textual NLI; asuntos por similitud semántica. Preguntas mediante signos de interrogación.')
+    # Los enfoques son independientes de la ejecución del complemento general.
+    if origen.exists():
+        from enfoques import seccion_html as seccion_enfoques
+        documento = documento.replace('<h2>Ficha técnica y alcance metodológico</h2>',
+            seccion_enfoques(origen) + '<h2>Ficha técnica y alcance metodológico</h2>', 1)
     Path(salida).write_text(documento, encoding='utf-8')
     return Path(salida)

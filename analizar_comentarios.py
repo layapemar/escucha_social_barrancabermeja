@@ -26,12 +26,13 @@ class ModeloLigero:
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
         self.torch = torch
+        torch.set_num_threads(2)
         self.preprocesar = preprocess_tweet
         self.tokenizador = AutoTokenizer.from_pretrained(carpeta_modelo)
         self.modelo = AutoModelForSequenceClassification.from_pretrained(
             carpeta_modelo,
             low_cpu_mem_usage=True,
-            dtype=torch.float16,
+            dtype=torch.float32,
         )
         self.modelo.eval()
 
@@ -101,6 +102,8 @@ def analizar(filas: list[dict[str, str]], progreso=None) -> list[dict[str, str]]
                 "tema": fila["tema"],
                 "fecha": fila.get("fecha", ""),
                 "post_id": fila.get("post_id", ""),
+                "page_id": fila.get("page_id", ""),
+                "page_name": fila.get("page_name", ""),
                 "comment_id": fila.get("comment_id", ""),
                 "comentario": fila["comentario"],
                 "etiqueta_modelo": etiqueta,

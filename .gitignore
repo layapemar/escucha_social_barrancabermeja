@@ -1,13 +1,39 @@
-.venv/
-.tmp_build/
-.cache_hf/
+# Entornos virtuales
+.venv*/
+venv/
+env/
+
+# Modelos descargados (pesados; se descargan al ejecutar la aplicación)
 modelos/
-__pycache__/
+.cache_hf/
+*.safetensors
+*.bin
+*.pt
+*.onnx
+
+# Datos reales y resultados generados (pueden contener comentarios de personas)
 datos/privados/
 resultados/
+informe_*.html
+informe_*.png
+comentarios_*.csv
+comparacion_modelo_revision.csv
+resumen_revision_humana.csv
+
+# Carpetas temporales de compilación y de las pruebas
+.tmp_build/
+tmp*/
+build/
+dist/
+*.egg-info/
+
+# Cachés de Python
+__pycache__/
+.ipynb_checkpoints/
 
 # Credenciales y configuracion local
 .env*
+.model_cache.json
 !.env.example
 .streamlit/secrets.toml
 .streamlit/credentials.toml
@@ -19,6 +45,14 @@ resultados/
 .ruff_cache/
 .coverage
 *.log
+htmlcov/
+.coverage.*
+
+# Editores y herramientas locales
+.vscode/
+.idea/
+*.swp
+*~
 
 # Archivos del sistema operativo
 .DS_Store
